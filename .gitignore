@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# env & secrets
+.env
+**/.env
+*.env.local
+
+# local data / generated
+backend/data/
+backend/storage/
+**/dist/
+*.log
+
+# os
+.DS_Store
+Thumbs.db

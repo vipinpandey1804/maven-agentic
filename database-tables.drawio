@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-06-10T00:00:00.000Z" agent="Claude" version="24.0.0" type="device">
+  <diagram id="tables-page" name="Database Tables">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1250" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="ttl" value="Salary Slip Agent Platform - PostgreSQL Table Structures" style="text;html=1;fontSize=18;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="320" y="10" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- employees -->
+        <mxCell id="t_emp" value="employees" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="240" height="226" as="geometry" />
+        </mxCell>
+        <mxCell id="t_emp_1" value="PK  id (uuid)" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_emp"><mxGeometry y="26" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_emp_2" value="UQ  employee_id (varchar)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_emp"><mxGeometry y="46" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_emp_3" value="full_name (varchar)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_emp"><mxGeometry y="66" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_emp_4" value="UQ  email (varchar)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_emp"><mxGeometry y="86" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_emp_5" value="dob (date, encrypted) - PDF password" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_emp"><mxGeometry y="106" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_emp_6" value="designation (varchar)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_emp"><mxGeometry y="126" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_emp_7" value="department (varchar)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_emp"><mxGeometry y="146" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_emp_8" value="date_of_joining (date)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_emp"><mxGeometry y="166" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_emp_9" value="status (enum: active | inactive)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_emp"><mxGeometry y="186" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_emp_10" value="created_at / updated_at (timestamptz)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_emp"><mxGeometry y="206" width="240" height="20" as="geometry" /></mxCell>
+
+        <!-- salary_records -->
+        <mxCell id="t_rec" value="salary_records" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#d5e8d4;strokeColor=#82b366;html=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="70" width="250" height="246" as="geometry" />
+        </mxCell>
+        <mxCell id="t_rec_1" value="PK  id (uuid)" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_rec"><mxGeometry y="26" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_2" value="FK  batch_id -&gt; salary_batches.id" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_rec"><mxGeometry y="46" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_3" value="FK  employee_id -&gt; employees.id" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_rec"><mxGeometry y="66" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_4" value="basic (numeric 12,2)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_rec"><mxGeometry y="86" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_5" value="hra (numeric 12,2)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_rec"><mxGeometry y="106" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_6" value="allowances (numeric 12,2)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_rec"><mxGeometry y="126" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_7" value="deductions (numeric 12,2)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_rec"><mxGeometry y="146" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_8" value="lop_days (numeric 4,1)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_rec"><mxGeometry y="166" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_9" value="net_pay (numeric 12,2)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_rec"><mxGeometry y="186" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_10" value="FK  pdf_file_id -&gt; files.id" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_rec"><mxGeometry y="206" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_rec_11" value="created_at (timestamptz)  UQ(batch_id, employee_id)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_rec"><mxGeometry y="226" width="250" height="20" as="geometry" /></mxCell>
+
+        <!-- salary_batches -->
+        <mxCell id="t_batch" value="salary_batches" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#ffe6cc;strokeColor=#d79b00;html=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="70" width="260" height="226" as="geometry" />
+        </mxCell>
+        <mxCell id="t_batch_1" value="PK  id (uuid)" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_batch"><mxGeometry y="26" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_batch_2" value="month (int), year (int)  UQ(month, year)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_batch"><mxGeometry y="46" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_batch_3" value="FK  source_file_id -&gt; files.id (uploaded Excel)" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_batch"><mxGeometry y="66" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_batch_4" value="status (DRAFT | PENDING_APPROVAL | APPROVED | SENT | REJECTED)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_batch"><mxGeometry y="86" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_batch_5" value="FK  uploaded_by -&gt; users.id" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_batch"><mxGeometry y="106" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_batch_6" value="FK  approved_by -&gt; users.id (nullable)" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_batch"><mxGeometry y="126" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_batch_7" value="approved_at (timestamptz, nullable)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_batch"><mxGeometry y="146" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_batch_8" value="reject_reason (text, nullable)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_batch"><mxGeometry y="166" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_batch_9" value="total_net_pay (numeric 14,2), employee_count (int)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_batch"><mxGeometry y="186" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_batch_10" value="created_at (timestamptz)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_batch"><mxGeometry y="206" width="260" height="20" as="geometry" /></mxCell>
+
+        <!-- users -->
+        <mxCell id="t_user" value="users" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;" vertex="1" parent="1">
+          <mxGeometry x="970" y="70" width="240" height="166" as="geometry" />
+        </mxCell>
+        <mxCell id="t_user_1" value="PK  id (uuid)" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_user"><mxGeometry y="26" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_user_2" value="UQ  email (varchar)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_user"><mxGeometry y="46" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_user_3" value="password_hash (varchar, bcrypt)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_user"><mxGeometry y="66" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_user_4" value="role (enum: admin | employee-Phase3)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_user"><mxGeometry y="86" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_user_5" value="FK  employee_id -&gt; employees.id (nullable, Phase 3)" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_user"><mxGeometry y="106" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_user_6" value="created_at (timestamptz)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_user"><mxGeometry y="126" width="240" height="20" as="geometry" /></mxCell>
+
+        <!-- agents -->
+        <mxCell id="t_agents" value="agents" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#fff2cc;strokeColor=#d6b656;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="360" width="240" height="146" as="geometry" />
+        </mxCell>
+        <mxCell id="t_agents_1" value="PK  id (uuid)" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_agents"><mxGeometry y="26" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_agents_2" value="UQ  name (varchar) e.g. salary-slip-agent" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_agents"><mxGeometry y="46" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_agents_3" value="enabled (boolean)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_agents"><mxGeometry y="66" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_agents_4" value="cron_expression (varchar) e.g. 0 9 1 * *" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_agents"><mxGeometry y="86" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_agents_5" value="config_json (jsonb)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_agents"><mxGeometry y="106" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_agents_6" value="created_at (timestamptz)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_agents"><mxGeometry y="126" width="240" height="20" as="geometry" /></mxCell>
+
+        <!-- send_logs -->
+        <mxCell id="t_log" value="send_logs" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#f8cecc;strokeColor=#b85450;html=1;" vertex="1" parent="1">
+          <mxGeometry x="340" y="380" width="250" height="166" as="geometry" />
+        </mxCell>
+        <mxCell id="t_log_1" value="PK  id (uuid)" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_log"><mxGeometry y="26" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_log_2" value="FK  salary_record_id -&gt; salary_records.id" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_log"><mxGeometry y="46" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_log_3" value="to_email (varchar, snapshot at send time)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_log"><mxGeometry y="66" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_log_4" value="status (QUEUED | SENT | FAILED)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_log"><mxGeometry y="86" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_log_5" value="attempts (int), last_error (text)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_log"><mxGeometry y="106" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_log_6" value="sent_at (timestamptz, nullable)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_log"><mxGeometry y="126" width="250" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_log_7" value="created_at (timestamptz)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_log"><mxGeometry y="146" width="250" height="20" as="geometry" /></mxCell>
+
+        <!-- files -->
+        <mxCell id="t_files" value="files" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="360" width="260" height="186" as="geometry" />
+        </mxCell>
+        <mxCell id="t_files_1" value="PK  id (uuid)" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_files"><mxGeometry y="26" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_files_2" value="kind (enum: salary_excel | employee_csv | slip_pdf | document)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_files"><mxGeometry y="46" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_files_3" value="original_name (varchar)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_files"><mxGeometry y="66" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_files_4" value="storage_path (varchar)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_files"><mxGeometry y="86" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_files_5" value="mime_type (varchar), size_bytes (bigint)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_files"><mxGeometry y="106" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_files_6" value="FK  uploaded_by -&gt; users.id (null for generated PDFs)" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_files"><mxGeometry y="126" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_files_7" value="created_at (timestamptz)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_files"><mxGeometry y="146" width="260" height="20" as="geometry" /></mxCell>
+
+        <!-- settings -->
+        <mxCell id="t_set" value="settings" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#fff2cc;strokeColor=#d6b656;html=1;" vertex="1" parent="1">
+          <mxGeometry x="970" y="290" width="240" height="106" as="geometry" />
+        </mxCell>
+        <mxCell id="t_set_1" value="PK  key (varchar) e.g. smtp, llm, schedule" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_set"><mxGeometry y="26" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_set_2" value="value_encrypted (text, AES-256)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_set"><mxGeometry y="46" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_set_3" value="FK  updated_by -&gt; users.id" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_set"><mxGeometry y="66" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_set_4" value="updated_at (timestamptz)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_set"><mxGeometry y="86" width="240" height="20" as="geometry" /></mxCell>
+
+        <!-- email_templates -->
+        <mxCell id="t_tpl" value="email_templates" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#d5e8d4;strokeColor=#82b366;html=1;" vertex="1" parent="1">
+          <mxGeometry x="970" y="440" width="240" height="166" as="geometry" />
+        </mxCell>
+        <mxCell id="t_tpl_1" value="PK  id (uuid)" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_tpl"><mxGeometry y="26" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_tpl_2" value="UQ  name (varchar) e.g. salary-slip" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_tpl"><mxGeometry y="46" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_tpl_3" value="subject (varchar) with {placeholders}" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_tpl"><mxGeometry y="66" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_tpl_4" value="body_html (text)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_tpl"><mxGeometry y="86" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_tpl_5" value="placeholders_json (jsonb)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_tpl"><mxGeometry y="106" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_tpl_6" value="FK  updated_by -&gt; users.id" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_tpl"><mxGeometry y="126" width="240" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_tpl_7" value="updated_at (timestamptz)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_tpl"><mxGeometry y="146" width="240" height="20" as="geometry" /></mxCell>
+
+        <!-- audit_logs -->
+        <mxCell id="t_audit" value="audit_logs" style="swimlane;fontStyle=1;align=center;startSize=26;fillColor=#f5f5f5;strokeColor=#666666;html=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="600" width="260" height="146" as="geometry" />
+        </mxCell>
+        <mxCell id="t_audit_1" value="PK  id (uuid)" style="text;html=1;align=left;spacingLeft=8;fontStyle=4;" vertex="1" parent="t_audit"><mxGeometry y="26" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_audit_2" value="FK  actor_id -&gt; users.id" style="text;html=1;align=left;spacingLeft=8;fontStyle=2;" vertex="1" parent="t_audit"><mxGeometry y="46" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_audit_3" value="action (varchar) e.g. BATCH_APPROVED, SETTINGS_UPDATED" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_audit"><mxGeometry y="66" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_audit_4" value="entity (varchar), entity_id (uuid)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_audit"><mxGeometry y="86" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_audit_5" value="details_json (jsonb)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_audit"><mxGeometry y="106" width="260" height="20" as="geometry" /></mxCell>
+        <mxCell id="t_audit_6" value="created_at (timestamptz)" style="text;html=1;align=left;spacingLeft=8;" vertex="1" parent="t_audit"><mxGeometry y="126" width="260" height="20" as="geometry" /></mxCell>
+
+        <!-- Relationships -->
+        <mxCell id="rel1" value="1 : N" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;exitX=1;exitY=0.5;entryX=0;entryY=0.3;" edge="1" parent="1" source="t_emp" target="t_rec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel2" value="1 : N" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;exitX=0;exitY=0.3;entryX=1;entryY=0.2;" edge="1" parent="1" source="t_batch" target="t_rec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel3" value="1 : N" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="t_rec" target="t_log">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel4" value="1 : N  uploaded_by / approved_by" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="t_user" target="t_batch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel5" value="1 : 1  source_file_id" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERone;endFill=0;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="t_files" target="t_batch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel6" value="1 : 1  pdf_file_id" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERone;endFill=0;exitX=0;exitY=0.5;entryX=1;entryY=0.8;" edge="1" parent="1" source="t_files" target="t_rec">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel7" value="1 : N  uploaded_by" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;exitX=0.3;exitY=1;entryX=1;entryY=0.3;" edge="1" parent="1" source="t_user" target="t_files">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel8" value="1 : N  updated_by" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;exitX=0.7;exitY=1;entryX=0.7;entryY=0;" edge="1" parent="1" source="t_user" target="t_set">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel9" value="1 : N  updated_by" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;exitX=1;exitY=0.8;entryX=1;entryY=0.5;" edge="1" parent="1" source="t_user" target="t_tpl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel10" value="1 : N  actor_id" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERone;startFill=0;endArrow=ERmany;endFill=0;exitX=0.9;exitY=1;entryX=1;entryY=0.5;" edge="1" parent="1" source="t_user" target="t_audit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel11" value="0..1 : 1  employee_id (Phase 3 login link)" style="edgeStyle=entityRelationEdgeStyle;html=1;dashed=1;startArrow=ERone;startFill=0;endArrow=ERzeroToOne;endFill=0;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="t_emp" target="t_user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="note1" value="agents = standalone config table for the Agent Engine (no FKs). Phase 2 adds: documents, embeddings (pgvector) with owner_id for row-level access." style="text;html=1;align=left;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="540" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

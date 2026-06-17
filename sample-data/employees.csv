@@ -1,0 +1,16 @@
+employee_id,full_name,email,dob,designation,department,date_of_joining,status
+EMP001,Asha Verma,asha.verma@example.com,1996-04-18,Senior Engineer,Engineering,2022-01-10,active
+EMP002,Rohan Gupta,rohan.gupta@example.com,1992-11-02,UI/UX Designer,Design,2021-06-01,active
+EMP003,Neha Singh,neha.singh@example.com,1990-07-25,Engineering Manager,Engineering,2019-03-15,active
+EMP004,Arjun Patel,arjun.patel@example.com,1998-02-14,Junior Developer,Engineering,2024-08-01,active
+EMP005,Priya Sharma,priya.sharma@example.com,1994-09-30,QA Lead,Quality,2021-11-22,active
+EMP006,Vikram Iyer,vikram.iyer@example.com,1989-12-05,Product Manager,Product,2020-02-17,active
+EMP007,Sneha Reddy,sneha.reddy@example.com,1997-06-21,Content Writer,Marketing,2023-04-10,active
+EMP008,Karan Malhotra,karan.malhotra@example.com,1987-03-09,Director of Sales,Sales,2018-07-30,active
+EMP009,Divya Nair,divya.nair@example.com,1999-10-12,HR Executive,Human Resources,2024-01-08,active
+EMP010,Amit Joshi,amit.joshi@example.com,1991-05-27,DevOps Engineer,Engineering,2020-09-14,active
+EMP011,Pooja Mehta,pooja.mehta@example.com,1995-08-03,Accountant,Finance,2022-05-19,active
+EMP012,Rahul Desai,rahul.desai@example.com,1988-01-16,Data Scientist,Analytics,2019-10-01,active
+EMP013,Ananya Kulkarni,ananya.kulkarni@example.com,2000-03-22,Support Executive,Customer Support,2024-11-04,active
+EMP014,Suresh Pillai,suresh.pillai@example.com,1985-06-08,Consultant,Advisory,2017-02-13,inactive
+EMP015,Meera Banerjee,meera.banerjee@example.com,1993-12-29,Marketing Lead,Marketing,2021-08-25,inactive
