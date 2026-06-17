@@ -1,0 +1,28 @@
+# Render Blueprint - backend web service (free tier).
+# Set DATABASE_URL + secret keys in the Render dashboard after first deploy.
+services:
+  - type: web
+    name: maven-payslip-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DB_CLIENT
+        value: pg
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SECRET_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

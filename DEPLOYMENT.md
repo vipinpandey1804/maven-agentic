@@ -1,8 +1,8 @@
-# Deployment Guide — Railway (backend) + Vercel (frontend) + Neon (Postgres)
+# Deployment Guide — Render (backend) + Vercel (frontend) + Neon (Postgres)
 
-Stack: **backend on Railway** (always-on, so the salary cron + background jobs run), **frontend on Vercel**, **Postgres + pgvector on Neon** (free tier with pgvector).
+Stack (all free, for dev/demo): **backend on Render free**, **frontend on Vercel free**, **Postgres + pgvector on Neon free**.
 
-Cost: Neon free + Vercel free + Railway (one-time $5 trial credit, then ~$5/mo Hobby). Railway is used because the free spin-down platforms (Render free) would put the cron scheduler to sleep.
+Cost: ₹0. Note: Render's free service sleeps after ~15 min idle (30-50s cold start) — fine for dev. For an always-on production setup, upgrade the backend to Render Starter ($7/mo) or use Railway Hobby ($5/mo); everything else stays the same.
 
 ---
 
@@ -17,29 +17,38 @@ Cost: Neon free + Vercel free + Railway (one-time $5 trial credit, then ~$5/mo H
 
 ---
 
-## 2. Backend — Railway
+## 2. Backend — Render (free)
 
 1. Push this repo to GitHub.
-2. Railway → **New Project → Deploy from GitHub repo** → pick the repo.
-3. Settings → **Root Directory** = `backend`.
-4. Railway auto-detects Node (Nixpacks) and runs `npm start`. `railway.json` already sets the start command + `/api/health` healthcheck.
-5. **Variables** (Settings → Variables) — add:
+2. https://render.com → sign up (GitHub) → **New + → Web Service** → connect the repo.
+3. Configure:
+   - **Root Directory**: `backend`
+   - **Runtime**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+   - **Instance Type**: **Free**
+   - **Health Check Path**: `/api/health`
+   (A `render.yaml` blueprint is also included — Render can auto-read it via "New + → Blueprint".)
+4. **Environment** → add variables:
 
    | Key | Value |
    |---|---|
    | `DATABASE_URL` | your Neon connection string |
    | `DB_CLIENT` | `pg` |
    | `JWT_SECRET` | a long random string |
-   | `SECRET_KEY` | a 32-character random string (for encrypting SMTP/LLM creds) |
+   | `SECRET_KEY` | a 32-character random string (encrypts SMTP/LLM creds) |
    | `ADMIN_EMAIL` | your admin login email |
    | `ADMIN_PASSWORD` | your admin login password |
    | `NODE_ENV` | `production` |
+   | `NODE_VERSION` | `22` |
 
-   (Do NOT set `PORT` — Railway injects it; the app reads `process.env.PORT`.)
-6. Deploy. Railway gives a public URL like `https://your-app.up.railway.app`.
-   Test: open `https://your-app.up.railway.app/api/health` → should return `{"ok":true,...}`.
+   (Do NOT set `PORT` — Render injects it; the app reads `process.env.PORT`.)
+5. **Create Web Service** → wait for build. You get a URL like `https://maven-payslip-api.onrender.com`.
+   Test: open `https://maven-payslip-api.onrender.com/api/health` → `{"ok":true,...}`.
 
-On first boot the app auto-migrates all tables (employees, salary, chat, rag_custom_docs) and enables pgvector. Add OpenAI + SMTP keys later from the in-app Settings page (they're stored encrypted in the DB).
+On first boot the app auto-migrates all tables (employees, salary, chat, rag_custom_docs) and enables pgvector. Add OpenAI + SMTP keys later from the in-app Settings page (stored encrypted in the DB).
+
+> **Free-tier note:** the service sleeps after ~15 min idle and takes 30-50s to wake on the next request. Fine for dev/demo. The monthly salary cron may not fire while asleep — just use the **"Run now"** button on the Agents page, or upgrade to the $7/mo Starter plan for always-on.
 
 ---
 
