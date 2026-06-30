@@ -15,6 +15,7 @@ async function migrate() {
   await migrateChat(db);
   await migrateLeaves(db);
   await migrateTickets(db);
+  await migrateNotifications(db);
   return db;
 }
 
@@ -78,6 +79,21 @@ async function migrateTickets(db) {
   await db.exec('CREATE INDEX IF NOT EXISTS idx_ticket_emp ON tickets(employee_id)');
   await db.exec('CREATE INDEX IF NOT EXISTS idx_ticket_status ON tickets(status)');
   await db.exec('CREATE INDEX IF NOT EXISTS idx_ticket_comments ON ticket_comments(ticket_id)');
+}
+
+async function migrateNotifications(db) {
+  await db.exec(`CREATE TABLE IF NOT EXISTS notifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT,
+    link TEXT,
+    read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`);
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id)');
+  await db.exec('CREATE INDEX IF NOT EXISTS idx_notif_unread ON notifications(user_id, read)');
 }
 
 if (require.main === module) {

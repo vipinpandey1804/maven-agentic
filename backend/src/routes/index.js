@@ -15,6 +15,7 @@ const rag = require('../services/ragService');
 const chat = require('../services/chatService');
 const users = require('../services/userService');
 const tickets = require('../services/ticketService');
+const notifications = require('../services/notificationService');
 const me = require('../services/meService');
 const leaves = require('../services/leaveService');
 const engine = require('../agents/engine');
@@ -63,6 +64,12 @@ router.post('/me/tickets', asyncHandler(async (req, res) => res.json(await ticke
 router.get('/me/tickets/:id', asyncHandler(async (req, res) => res.json(await tickets.get(req.params.id, { role: 'employee', employeeId: req.user.employeeId }))));
 router.post('/me/tickets/:id/comments', asyncHandler(async (req, res) => res.json(await tickets.addComment(req.params.id, req.body || {}, req.user))));
 
+// in-app notifications (any authenticated user, own only)
+router.get('/notifications', asyncHandler(async (req, res) => res.json(await notifications.list(req.user.sub, { limit: Number(req.query.limit) || 30 }))));
+router.get('/notifications/unread-count', asyncHandler(async (req, res) => res.json({ count: await notifications.unreadCount(req.user.sub) })));
+router.post('/notifications/:id/read', asyncHandler(async (req, res) => res.json(await notifications.markRead(req.user.sub, req.params.id))));
+router.post('/notifications/read-all', asyncHandler(async (req, res) => res.json(await notifications.markAllRead(req.user.sub))));
+
 // leaves review (hr/admin)
 router.get('/leaves', ADMIN_HR, asyncHandler(async (req, res) => res.json(await leaves.list({ status: req.query.status }))));
 router.post('/leaves/:id/review', ADMIN_HR, asyncHandler(async (req, res) => res.json(await leaves.review(req.params.id, req.body || {}, req.user.sub))));
@@ -86,6 +93,8 @@ router.post('/employees/import', ADMIN_HR, upload.single('file'), asyncHandler(a
   if (!req.file) throw new HttpError(400, 'CSV file is required (field name "file")');
   const result = await employees.importCsv(req.file.buffer, req.user.sub, { partial: req.query.partial === 'true' });
   rag.reindexBackground(req.user.sub);
+  notifications.bgRoles(['hr', 'admin'], { type: 'employees', title: 'Employee import complete',
+    body: `${result.inserted} added, ${result.updated} updated, ${result.accountsCreated || 0} login(s) created.`, link: '/employees' });
   res.json(result);
 }));
 router.get('/employees/:id/history', ADMIN_HR, asyncHandler(async (req, res) => res.json(await salary.employeeHistory(req.params.id))));
@@ -106,6 +115,8 @@ router.post('/salary/upload', UPLOADERS, upload.single('file'), asyncHandler(asy
         html: `<p>A salary batch for <b>${result.month}/${result.year}</b> was uploaded by ${req.user.email}.</p><p>${result.employeeCount} employees, total ₹${Number(result.totalNetPay).toLocaleString('en-IN')}. Please review and approve it in the admin panel.</p>` });
     }
   } catch (e) { console.error('[notify] batch-review email failed:', e.message); }
+  notifications.bgRoles(['hr', 'admin'], { type: 'salary', title: 'New salary batch to review',
+    body: `${result.month}/${result.year} batch uploaded (${result.employeeCount} employees). Review and approve.`, link: '/batches/' + result.batchId });
   res.status(201).json(result);
 }));
 router.put('/salary/records/:id/flag', ADMIN_HR, asyncHandler(async (req, res) => res.json(await salary.flagRecord(req.params.id, req.body || {}, req.user.sub))));
@@ -171,7 +182,7 @@ router.post('/ai/assistant', ADMIN_HR_CA, asyncHandler(async (req, res) => { if 
 
 // RAG
 router.get('/rag/status', ADMIN_HR_CA, asyncHandler(async (_req, res) => res.json({ ...(await rag.status()), ...rag.indexingState() })));
-router.post('/rag/reindex', ADMIN_HR, asyncHandler(async (req, res) => res.json(await rag.reindex(req.user.sub))));
+router.post('/rag/reindex', ADMIN_HR, asyncHandler(async (req, res) => { const r = await rag.reindex(req.user.sub); notifications.bgRoles(['admin'], { type: 'system', title: 'Knowledge base reindexed', body: 'Maven assistant knowledge base was refreshed.', link: '/settings' }); res.json(r); }));
 router.post('/rag/ask', ADMIN_HR_CA, asyncHandler(async (req, res) => { if (!req.body?.question) throw new HttpError(400, 'question is required'); res.json(await rag.answer(req.body.question, { history: Array.isArray(req.body.history) ? req.body.history : [] })); }));
 router.post('/rag/documents', ADMIN_HR, asyncHandler(async (req, res) => res.json(await rag.addDocument({ title: req.body?.title, content: req.body?.content }, req.user.sub))));
 router.post('/rag/documents/upload', ADMIN_HR, upload.single('file'), asyncHandler(async (req, res) => {

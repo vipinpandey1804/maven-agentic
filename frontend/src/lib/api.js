@@ -49,6 +49,11 @@ export const api = {
   updateUser: (id, body) => call(`/users/${id}`, { method: 'PUT', body }),
   deleteUser: (id) => call(`/users/${id}`, { method: 'DELETE' }),
   backfillEmployeeAccounts: () => call('/users/backfill-employees', { method: 'POST' }),
+  // notifications
+  notifications: () => call('/notifications'),
+  notifUnread: () => call('/notifications/unread-count'),
+  notifRead: (id) => call(`/notifications/${id}/read`, { method: 'POST' }),
+  notifReadAll: () => call('/notifications/read-all', { method: 'POST' }),
   batches: () => call('/salary/batches'),
   batch: (id) => call(`/salary/batches/${id}`),
   uploadSalary: (file, month, year) => { const fd = new FormData(); fd.append('file', file); fd.append('month', month); fd.append('year', year); return call('/salary/upload', { method: 'POST', formData: fd }); },

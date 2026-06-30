@@ -3,6 +3,7 @@ const { init } = require('../db');
 const { uuid, now, HttpError } = require('../utils/helpers');
 const { ROLES } = require('../middleware/auth');
 const audit = require('./auditService');
+const notify = require('./notificationService');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const safe = (u) => ({
@@ -44,6 +45,9 @@ async function create({ email, password, role, employeeId }, actorId) {
     [id, email, bcrypt.hashSync(initialPassword, 10), role, employeeId || null, now()]
   );
   await audit.log(actorId, 'USER_CREATED', 'users', id, { email, role, passwordDefaultedToEmail: initialPassword === email });
+  notify.bgUser(id, { type: 'account', title: 'Welcome to PaySlip Agent',
+    body: `An account was created for you (${email}). ${initialPassword === email ? 'Your temporary password is your email — please change it after first login.' : ''}`,
+    link: '/profile', email: { subject: 'Your PaySlip Agent account is ready' } });
   return safe(await db.get('SELECT u.*, e.full_name AS employee_name FROM users u LEFT JOIN employees e ON e.id = u.employee_id WHERE u.id = ?', [id]));
 }
 
@@ -106,6 +110,9 @@ async function changePassword(userId, currentPassword, newPassword) {
   }
   await db.run('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?', [bcrypt.hashSync(newPassword, 10), userId]);
   await audit.log(userId, 'PASSWORD_CHANGED', 'users', userId);
+  notify.bgUser(userId, { type: 'security', title: 'Password changed',
+    body: 'Your account password was changed. If this was not you, contact your admin immediately.',
+    link: '/profile', email: { subject: 'Your password was changed' } });
   return { ok: true };
 }
 

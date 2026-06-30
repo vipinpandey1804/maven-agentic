@@ -1,6 +1,7 @@
 const { init } = require('../db');
 const { uuid, now, HttpError } = require('../utils/helpers');
 const audit = require('./auditService');
+const notify = require('./notificationService');
 
 const TYPES = ['casual', 'sick', 'earned', 'unpaid'];
 
@@ -25,6 +26,10 @@ async function apply(employeeId, { type, from_date, to_date, reason }, actorId) 
     [id, employeeId, type, from_date, to_date, days, reason || null, now(), now()]
   );
   await audit.log(actorId, 'LEAVE_APPLIED', 'leave_requests', id, { type, from_date, to_date, days });
+  const who = await db.get('SELECT full_name FROM employees WHERE id = ?', [employeeId]);
+  notify.bgRoles(['hr', 'admin'], { type: 'leave', title: 'New leave request',
+    body: `${who ? who.full_name : 'An employee'} requested ${days} day(s) ${type} leave (${from_date} to ${to_date}).`,
+    link: '/leaves', email: { subject: 'New leave request to review' } });
   return db.get('SELECT * FROM leave_requests WHERE id = ?', [id]);
 }
 
@@ -57,6 +62,9 @@ async function review(id, { status, note }, actorId) {
   await db.run('UPDATE leave_requests SET status = ?, reviewed_by = ?, review_note = ?, updated_at = ? WHERE id = ?',
     [status, actorId, note || null, now(), id]);
   await audit.log(actorId, status === 'APPROVED' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED', 'leave_requests', id, { note });
+  notify.bgEmployee(lr.employee_id, { type: 'leave', title: `Leave ${status.toLowerCase()}`,
+    body: `Your ${lr.type} leave (${lr.from_date} to ${lr.to_date}) was ${status.toLowerCase()}.${note ? ' Note: ' + note : ''}`,
+    link: '/me', email: { subject: `Your leave request was ${status.toLowerCase()}` } });
   return db.get('SELECT * FROM leave_requests WHERE id = ?', [id]);
 }
 

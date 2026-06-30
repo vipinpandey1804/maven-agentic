@@ -5,6 +5,7 @@ import { LayoutDashboard, Users, FileSpreadsheet, Settings, LogOut, IndianRupee,
 import { setToken, setUser, getRole, getUser } from '../lib/api';
 import { cn } from '../lib/utils';
 import FloatingAssistant from './FloatingAssistant';
+import NotificationBell from './NotificationBell';
 
 const NAV = [
   { to: '/me', label: 'My Dashboard', icon: LayoutDashboard, roles: ['employee'] },
@@ -76,6 +77,9 @@ export default function Layout() {
       </aside>
 
       <main className="ml-60 flex-1 px-8 py-7">
+        <div className="mb-4 flex items-center justify-end">
+          <NotificationBell />
+        </div>
         {showPwdHint && (
           <div className="mb-5 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
             <span>You're using a temporary password. <Link to="/profile" className="font-semibold underline">Set a new password</Link> for better security.</span>

@@ -7,6 +7,7 @@ const { uuid, now, HttpError } = require('../utils/helpers');
 const audit = require('./auditService');
 const pdfService = require('./pdfService');
 const mailer = require('./mailerService');
+const notify = require('./notificationService');
 const settings = require('./settingsService');
 const ai = require('./aiService');
 
@@ -148,6 +149,11 @@ async function flagRecord(recordId, { flagged, reason }, actorId) {
   await db.run('UPDATE salary_records SET flagged = ?, flag_reason = ? WHERE id = ?',
     [flagged ? 1 : 0, flagged ? (reason || null) : null, recordId]);
   await audit.log(actorId, flagged ? 'RECORD_FLAGGED' : 'RECORD_UNFLAGGED', 'salary_records', recordId, { reason });
+  if (flagged) {
+    const b = await db.get('SELECT id, uploaded_by, month, year FROM salary_batches WHERE id = ?', [rec.batch_id]);
+    if (b && b.uploaded_by) notify.bgUser(b.uploaded_by, { type: 'salary', title: 'Salary record flagged',
+      body: `A record in your ${b.month}/${b.year} batch was flagged as incorrect.${reason ? ' Reason: ' + reason : ''}`, link: '/batches/' + b.id, email: { subject: 'Salary record flagged for review' } });
+  }
   return db.get('SELECT * FROM salary_records WHERE id = ?', [recordId]);
 }
 
@@ -162,6 +168,8 @@ async function approve(id, actorId) {
   }
   await db.run('UPDATE salary_batches SET status = ?, approved_by = ?, approved_at = ? WHERE id = ?', ['APPROVED', actorId, now(), id]);
   await audit.log(actorId, 'BATCH_APPROVED', 'salary_batches', id, { month: batch.month, year: batch.year });
+  if (batch.uploaded_by) notify.bgUser(batch.uploaded_by, { type: 'salary', title: 'Salary batch approved',
+    body: `Your ${batch.month}/${batch.year} salary batch was approved.`, link: '/batches/' + id, email: { subject: 'Salary batch approved' } });
   return getBatch(id);
 }
 
@@ -172,6 +180,8 @@ async function reject(id, reason, actorId) {
   if (batch.status !== 'PENDING_APPROVAL') throw new HttpError(409, `Batch is ${batch.status}, cannot reject`);
   await db.run('UPDATE salary_batches SET status = ?, reject_reason = ? WHERE id = ?', ['REJECTED', reason || null, id]);
   await audit.log(actorId, 'BATCH_REJECTED', 'salary_batches', id, { reason });
+  if (batch.uploaded_by) notify.bgUser(batch.uploaded_by, { type: 'salary', title: 'Salary batch rejected',
+    body: `Your ${batch.month}/${batch.year} salary batch was rejected.${reason ? ' Reason: ' + reason : ''}`, link: '/batches/' + id, email: { subject: 'Salary batch rejected' } });
   return getBatch(id);
 }
 
@@ -213,6 +223,8 @@ async function sendBatch(id, actorId, { trigger = 'manual' } = {}) {
         attachments: [{ filename: `SalarySlip-${monthName}-${batch.year}.pdf`, path: pdfPath }],
       });
       await db.run('UPDATE send_logs SET status = ?, attempts = attempts + 1, sent_at = ?, last_error = NULL WHERE id = ?', ['SENT', now(), logId]);
+      notify.bgEmployee(rec.employee_id, { type: 'payslip', title: 'Payslip available',
+        body: `Your salary slip for ${monthName} ${batch.year} has been sent to your email.`, link: '/me' });
       sent++;
     } catch (e) {
       const attempts = (last ? last.attempts : 0) + 1;

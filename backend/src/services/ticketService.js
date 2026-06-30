@@ -4,6 +4,7 @@ const audit = require('./auditService');
 const mailer = require('./mailerService');
 const users = require('./userService');
 const rag = require('./ragService');
+const notify = require('./notificationService');
 
 const CATEGORIES = ['email', 'phone', 'address', 'other'];
 const STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'];
@@ -35,6 +36,9 @@ async function create(employeeId, { category, subject, message }, actor) {
     [uuid(), id, actor.sub, actor.role || 'employee', emp.full_name, String(message).trim(), ts]
   );
   await audit.log(actor.sub, 'TICKET_CREATED', 'tickets', id, { category, subject });
+
+  notify.bgRoles(['hr', 'admin'], { type: 'ticket', title: 'New change request',
+    body: `${emp.full_name} raised: ${String(subject).trim()}`, link: '/requests' });
 
   // AI reply + HR email run in the BACKGROUND so the request returns immediately
   aiReply(db, id, category, String(subject).trim()).catch((e) => console.error('[ticket-ai]', e.message));
@@ -119,6 +123,10 @@ async function addComment(id, { message }, actor) {
   // AI replies to employee messages (HR replies stay human) — background
   if (isEmployee) aiReply(db, id, t.category, t.subject).catch((e) => console.error('[ticket-ai]', e.message));
 
+  // in-app notify the other party
+  if (isEmployee) notify.bgRoles(['hr', 'admin'], { type: 'ticket', title: 'Reply on a change request', body: `${name} replied on "${t.subject}"`, link: '/requests' });
+  else notify.bgEmployee(t.employee_id, { type: 'ticket', title: 'Update on your request', body: `HR replied on "${t.subject}"`, link: '/profile' });
+
   // notify the other party — background
   (async () => {
     try {
@@ -155,6 +163,7 @@ async function updateStatus(id, { status, note }, actor) {
   await audit.log(actor.sub, 'TICKET_STATUS', 'tickets', id, { status });
 
   if (status === 'CLOSED') {
+    notify.bgEmployee(t.employee_id, { type: 'ticket', title: 'Request resolved', body: `Your request "${t.subject}" was resolved and closed.`, link: '/profile' });
     (async () => {
       try {
         const emp = await employeeName(db, t.employee_id);
