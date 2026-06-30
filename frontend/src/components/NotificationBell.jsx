@@ -17,7 +17,7 @@ function timeAgo(iso) {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({ variant = 'top' }) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [unread, setUnread] = useState(0);
@@ -58,21 +58,39 @@ export default function NotificationBell() {
     setUnread(0);
   }
 
+  const sidebar = variant === 'sidebar';
+  const panelPos = sidebar ? 'bottom-full left-0 mb-2' : 'right-0 mt-2';
+  const anim = sidebar ? { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: 8 } }
+                       : { initial: { opacity: 0, y: -8, scale: 0.98 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: -8, scale: 0.98 } };
+
   return (
     <div className="relative" ref={ref}>
-      <button onClick={toggle} className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
-        <Bell size={19} />
-        {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-            {unread > 9 ? '9+' : unread}
-          </span>
-        )}
-      </button>
+      {sidebar ? (
+        <button onClick={toggle}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+          <Bell size={17} />
+          <span className="flex-1 text-left">Notifications</span>
+          {unread > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+              {unread > 9 ? '9+' : unread}
+            </span>
+          )}
+        </button>
+      ) : (
+        <button onClick={toggle} className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+          <Bell size={19} />
+          {unread > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+              {unread > 9 ? '9+' : unread}
+            </span>
+          )}
+        </button>
+      )}
 
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-xl border bg-card shadow-xl">
+          <motion.div {...anim}
+            className={`absolute z-50 w-80 overflow-hidden rounded-xl border bg-card shadow-xl ${panelPos}`}>
             <div className="flex items-center justify-between border-b px-4 py-2.5">
               <span className="text-sm font-semibold">Notifications</span>
               {items.some((x) => !x.read) && (

@@ -55,6 +55,10 @@ router.use(requireAuth);
 router.get('/me/dashboard', asyncHandler(async (req, res) => res.json(await me.dashboard(req.user.employeeId))));
 router.get('/me/profile', asyncHandler(async (req, res) => res.json(await me.profile(req.user.employeeId))));
 router.get('/me/payslips', asyncHandler(async (req, res) => res.json(await me.payslips(req.user.employeeId))));
+router.get('/me/payslips/:id/slip', asyncHandler(async (req, res) => {
+  const { path: f, filename } = await salary.slipPdf(req.params.id, { forEmployeeId: req.user.employeeId, encrypted: false });
+  res.download(f, filename);
+}));
 router.get('/me/leaves', asyncHandler(async (req, res) => res.json(await leaves.mine(req.user.employeeId))));
 router.post('/me/leaves', asyncHandler(async (req, res) => res.json(await leaves.apply(req.user.employeeId, req.body || {}, req.user.sub))));
 
@@ -98,6 +102,7 @@ router.post('/employees/import', ADMIN_HR, upload.single('file'), asyncHandler(a
   res.json(result);
 }));
 router.get('/employees/:id/history', ADMIN_HR, asyncHandler(async (req, res) => res.json(await salary.employeeHistory(req.params.id))));
+router.get('/employees/:id/overview', ADMIN_HR, asyncHandler(async (req, res) => res.json(await employees.overview(req.params.id))));
 router.put('/employees/:id', ADMIN_HR, asyncHandler(async (req, res) => { const r = await employees.update(req.params.id, req.body || {}, req.user.sub); rag.reindexBackground(req.user.sub); res.json(r); }));
 router.post('/employees/:id/send-email', ADMIN_HR, asyncHandler(async (req, res) => res.json(await employees.sendTemplatedEmail(req.params.id, req.body?.template, req.user.sub))));
 
@@ -120,9 +125,22 @@ router.post('/salary/upload', UPLOADERS, upload.single('file'), asyncHandler(asy
   res.status(201).json(result);
 }));
 router.put('/salary/records/:id/flag', ADMIN_HR, asyncHandler(async (req, res) => res.json(await salary.flagRecord(req.params.id, req.body || {}, req.user.sub))));
+router.get('/salary/records/:id/slip', ADMIN_HR, asyncHandler(async (req, res) => {
+  const { path: f, filename } = await salary.slipPdf(req.params.id, { encrypted: false });
+  res.download(f, filename);
+}));
 router.post('/salary/batches/:id/approve', ADMIN_HR, asyncHandler(async (req, res) => { const r = await salary.approve(req.params.id, req.user.sub); rag.reindexBackground(req.user.sub); res.json(r); }));
 router.post('/salary/batches/:id/reject', ADMIN_HR, asyncHandler(async (req, res) => res.json(await salary.reject(req.params.id, req.body?.reason, req.user.sub))));
-router.post('/salary/batches/:id/send', ADMIN_HR, asyncHandler(async (req, res) => { const r = await salary.sendBatch(req.params.id, req.user.sub); rag.reindexBackground(req.user.sub); res.json(r); }));
+router.post('/salary/batches/:id/send', ADMIN_HR, asyncHandler(async (req, res) => {
+  // validate up-front so the user gets a clean error, then dispatch in the BACKGROUND
+  const batch = await salary.getBatch(req.params.id);
+  if (!['APPROVED', 'SENT'].includes(batch.status)) throw new HttpError(409, `Batch must be APPROVED to send (is ${batch.status})`);
+  const pending = batch.records.filter((r) => r.send_status !== 'SENT').length;
+  salary.sendBatch(req.params.id, req.user.sub)
+    .then(() => rag.reindexBackground(req.user.sub))
+    .catch((e) => console.error('[send] background dispatch failed:', e.message));
+  res.json({ started: true, total: batch.records.length, pending });
+}));
 
 // settings (admin)
 const SETTING_KEYS = ['smtp', 'llm', 'schedule', 'company'];

@@ -152,6 +152,20 @@ async function gatherStats() {
     lines.push(`Slip sends: ${Number(sends?.sent || 0)} sent, ${Number(sends?.failed || 0)} failed, ${Number(sends?.queued || 0)} queued.`);
     lines.push(`Pending leave requests: ${Number(pendingLeaves?.n || 0)}.`);
     if (fails.length) lines.push(`Failed slips: ${fails.map((f) => `${f.full_name} (${f.code}, ${MONTHS[f.month - 1]} ${f.year})`).join('; ')}.`);
+
+    // Authoritative salary ranking from the most recent APPROVED/SENT batch so that
+    // "who earns the most/least", "total payroll", "average salary" are answered exactly.
+    const latest = await db.get(`SELECT id, month, year FROM salary_batches WHERE status IN ('APPROVED','SENT') ORDER BY year DESC, month DESC LIMIT 1`);
+    if (latest) {
+      const pay = await db.all(`SELECT e.full_name AS name, e.employee_id AS code, r.net_pay AS net FROM salary_records r JOIN employees e ON e.id = r.employee_id WHERE r.batch_id = ? ORDER BY r.net_pay DESC`, [latest.id]);
+      if (pay.length) {
+        const top = pay[0], low = pay[pay.length - 1];
+        const total = pay.reduce((a, r) => a + Number(r.net_pay || r.net || 0), 0);
+        const avg = Math.round(total / pay.length);
+        lines.push(`Salary ranking for the latest batch (${MONTHS[latest.month - 1]} ${latest.year}) - net pay, ALL ${pay.length} employees, highest to lowest: ${pay.map((r) => `${r.name} (${r.code}) ${Number(r.net)}`).join('; ')}.`);
+        lines.push(`Highest paid: ${top.name} (${top.code}) at ${Number(top.net)}. Lowest paid: ${low.name} (${low.code}) at ${Number(low.net)}. Total payroll this batch: ${total}. Average net pay: ${avg}.`);
+      }
+    }
     return lines.join('\n');
   } catch (e) { console.error('[rag] gatherStats failed:', e.message); return ''; }
 }
@@ -161,13 +175,23 @@ async function entityContext(text) {
     const db = await init();
     const t = String(text).toLowerCase();
     const employees = await db.all('SELECT id, employee_id, full_name, email, designation, department, status FROM employees');
-    const matched = employees.filter((e) => t.includes(String(e.full_name).toLowerCase()) || t.includes(String(e.employee_id).toLowerCase())).slice(0, 3);
+    const matched = employees.filter((e) => {
+      const id = String(e.employee_id).toLowerCase();
+      if (id && t.includes(id)) return true;
+      const parts = String(e.full_name).toLowerCase().split(/\s+/).filter((p) => p.length >= 3);
+      return parts.some((p) => new RegExp(`\\b${p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(t));
+    }).slice(0, 5);
     if (!matched.length) return '';
     const blocks = [];
     for (const e of matched) {
       const recs = await db.all(`SELECT b.month, b.year, b.status, r.basic, r.hra, r.allowances, r.deductions, r.lop_days, r.net_pay FROM salary_records r JOIN salary_batches b ON b.id = r.batch_id WHERE r.employee_id = ? ORDER BY b.year DESC, b.month DESC`, [e.id]);
       const hist = recs.length ? recs.map((r) => `${MONTHS[r.month - 1]} ${r.year} (batch ${r.status}): basic ${r.basic}, HRA ${r.hra}, allowances ${r.allowances}, deductions ${r.deductions}, LOP ${r.lop_days}, net pay ${r.net_pay}`).join('; ') : 'no salary records yet';
-      blocks.push(`Employee ${e.full_name} (${e.employee_id}) - ${e.designation || 'N/A'}, ${e.department || 'N/A'}, ${e.status}, email ${e.email}. Salary slip history (${recs.length} record(s)): ${hist}.`);
+      const lv = await db.all('SELECT type, from_date, to_date, days, status FROM leave_requests WHERE employee_id = ? ORDER BY from_date DESC LIMIT 30', [e.id]);
+      const lvStr = lv.length ? lv.map((l) => `${l.type} ${l.from_date} to ${l.to_date} (${l.days}d) - ${l.status}`).join('; ') : 'no leave requests';
+      const approvedDays = lv.filter((l) => l.status === 'APPROVED').reduce((a, l) => a + Number(l.days || 0), 0);
+      blocks.push(`Employee ${e.full_name} (${e.employee_id}) - ${e.designation || 'N/A'}, ${e.department || 'N/A'}, ${e.status}, email ${e.email}.
+Salary slip history (${recs.length} record(s)): ${hist}.
+Leave requests (${lv.length}; ${approvedDays} approved day(s) total): ${lvStr}.`);
     }
     return blocks.join('\n');
   } catch (e) { console.error('[rag] entityContext failed:', e.message); return ''; }
@@ -242,6 +266,7 @@ async function answer(question, { k = 8, history = [], scope = null } = {}) {
     const sys = [
       "You are Maven, a friendly assistant for an EMPLOYEE of this company.",
       "You may discuss THIS employee's own salary, payslips, leaves and profile (the [your data] block), general company info/policies, AND the colleague directory.",
+      "GROUNDING RULE: Answer ONLY from the provided context blocks and knowledge-base documents. NEVER use outside or general knowledge, and never invent specifics (for example, do not list assets, benefits, perks, or policy details that are not explicitly written in the documents). If the answer is not present in the provided context, clearly say it is not covered in the company's documents and do not guess.",
       "If the user asks who their colleagues are, who works in a team/department, or for a list of people, USE the [colleague directory] block to answer with names, designations and departments. Headcounts of colleagues or departments are fine.",
       "NEVER reveal any OTHER employee's salary, payslips, payout amounts, email, phone, date of birth, or other personal/contact details - only their name, designation and department. Never give company-wide salary totals or payout figures. For the asking user's OWN salary/payslips, answering is fine.",
       'When listing multiple people or any structured records (e.g. colleagues), format them as a GitHub-flavored Markdown table with clear column headers (for colleagues use: Name | Designation | Department). Use the rupee symbol and Indian number formatting. No bracketed citations. Be warm and concise.',
@@ -273,11 +298,12 @@ async function answer(question, { k = 8, history = [], scope = null } = {}) {
   const sys = [
     "You are Maven, a friendly, conversational assistant for this company's admin panel.",
     'Behave like a normal chat assistant: greet back, be warm and concise.',
-    'For counts and totals use the [summary] block. To LIST employees or give per-employee details, use the [all employees] roster - never say a field is "Not available" if it is present, and never invent placeholder rows like "One employee in X".',
+    'For counts, totals, and salary rankings (who earns the most/least, highest/lowest/average/total payroll) use the [summary] block - it lists EVERY employee\'s net pay for the latest batch, so never guess from a partial list. To LIST employees or give per-employee details, use the [all employees] roster - never say a field is "Not available" if it is present, and never invent placeholder rows like "One employee in X".',
     'For a specific person, use the [employee details] block when present; otherwise use the context snippets. When listing employees or any structured/tabular data (rosters, salary breakdowns, batches), format the answer as a GitHub-flavored Markdown table with clear column headers. Use the rupee symbol and Indian number formatting.',
     'Do NOT include citation markers like [1] or [summary] in your reply - answer naturally in plain language.',
     'If the latest message is a short follow-up like "yes" or "details", interpret it from the conversation so far.',
-    'If the context does not contain the answer but the question is clearly about the company, simply say you do not have that information. Do NOT tell the user to add it or check Settings.',
+    "GROUNDING RULE: Answer ONLY from the provided context blocks and knowledge-base documents. NEVER use outside or general knowledge, and never invent specifics (for example, do not list assets, benefits, perks, or policy details that are not explicitly written in the documents). If the answer is not present in the provided context, clearly say it is not covered in the company's documents and do not guess.",
+    'If the context does not contain the answer, simply say you do not have that information in the company documents. Do NOT tell the user to add it or check Settings, and do NOT fill the gap with general knowledge.',
     "If the question is OFF-TOPIC (not about this company/people/payroll/policies), gently say you're going off track and ask to keep it company-related.",
   ].join(' ');
   const res = await model.invoke([new SystemMessage(sys), new HumanMessage(`${convo ? `Conversation so far:\n${convo}\n\n` : ''}Context:\n${context}\n\nUser: ${q}`)]);

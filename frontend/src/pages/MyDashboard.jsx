@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { IndianRupee, FileText, Briefcase, Calendar, Cake, Mail, CalendarDays, BarChart3, LineChart as LineIcon, PieChart as PieIcon, AreaChart as AreaIcon } from 'lucide-react';
+import { IndianRupee, FileText, Briefcase, Calendar, Cake, Mail, CalendarDays, Download, BarChart3, LineChart as LineIcon, PieChart as PieIcon, AreaChart as AreaIcon } from 'lucide-react';
 import { api } from '../lib/api';
 import { inr, MONTHS, STATUS_COLORS, isBirthday } from '../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Button, Input, Label, Table, THead, TBody, TR, TH, TD, Spinner, Empty } from '../components/ui';
@@ -20,6 +20,7 @@ export default function MyDashboard() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
   const [error, setError] = useState('');
+  const [dl, setDl] = useState(null);
 
   // chart controls
   const [metric, setMetric] = useState('trend');
@@ -42,6 +43,13 @@ export default function MyDashboard() {
       loadLeaves();
     } catch (e) { setMsg({ ok: false, text: e.message }); }
     finally { setBusy(false); }
+  }
+
+  async function downloadSlip(s) {
+    setDl(s.id);
+    try { await api.downloadMySlip(s.id, `SalarySlip-${s.month_name}-${s.year}.pdf`); }
+    catch (e) { setMsg({ ok: false, text: e.message }); }
+    finally { setDl(null); }
   }
 
   if (error) return <Empty>{error}</Empty>;
@@ -162,7 +170,7 @@ export default function MyDashboard() {
                 <Empty>No payslips issued yet</Empty>
               ) : (
                 <Table>
-                  <THead><TR><TH>Month</TH><TH>Basic</TH><TH>HRA</TH><TH>Allowances</TH><TH>Deductions</TH><TH>Net pay</TH><TH>Status</TH></TR></THead>
+                  <THead><TR><TH>Month</TH><TH>Basic</TH><TH>HRA</TH><TH>Allowances</TH><TH>Deductions</TH><TH>Net pay</TH><TH>Status</TH><TH>Slip</TH></TR></THead>
                   <TBody>
                     {slips.map((s) => (
                       <TR key={s.id}>
@@ -171,6 +179,11 @@ export default function MyDashboard() {
                         <TD className="text-rose-600">−₹{inr(s.deductions)}</TD>
                         <TD className="font-semibold">₹{inr(s.net_pay)}</TD>
                         <TD>{s.send_status ? <Badge className={STATUS_COLORS[s.send_status]}>{s.send_status}</Badge> : <Badge className={STATUS_COLORS[s.batch_status]}>{s.batch_status}</Badge>}</TD>
+                        <TD>
+                          <Button size="sm" variant="ghost" disabled={dl === s.id} onClick={() => downloadSlip(s)}>
+                            {dl === s.id ? <Spinner className="h-3.5 w-3.5" /> : <Download size={14} />} PDF
+                          </Button>
+                        </TD>
                       </TR>
                     ))}
                   </TBody>

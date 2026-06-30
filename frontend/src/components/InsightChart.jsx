@@ -16,12 +16,17 @@ export default function InsightChart({
   valueFormatter = (v) => v, height = 260, donut = false,
 }) {
   if (!data || data.length === 0) return <Empty>Not enough data to chart yet</Empty>;
+  // Bars read from a 0 baseline; line/area trends auto-scale around the data so
+  // small month-to-month changes are visible instead of looking like a flat line.
+  const yDomain = type === 'bar'
+    ? [0, 'auto']
+    : [(min) => Math.floor(min - Math.abs(min) * 0.05), (max) => Math.ceil(max + Math.abs(max) * 0.05)];
   const axes = (
     <>
       {grid}
       <XAxis dataKey={xKey} tickLine={false} axisLine={false} fontSize={11}
         interval={0} angle={data.length > 6 ? -25 : 0} textAnchor={data.length > 6 ? 'end' : 'middle'} height={data.length > 6 ? 56 : 24} />
-      <YAxis tickFormatter={valueFormatter} tickLine={false} axisLine={false} fontSize={12} width={64} />
+      <YAxis domain={yDomain} tickFormatter={valueFormatter} tickLine={false} axisLine={false} fontSize={12} width={64} />
       <Tooltip formatter={(v, n) => [valueFormatter(v), n]} />
       {series.length > 1 && <Legend />}
     </>

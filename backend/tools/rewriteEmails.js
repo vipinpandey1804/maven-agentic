@@ -1,5 +1,6 @@
 // Replace @example.com emails with @mailinator.com in employees + users (except admin).
 // Run: npm run emails:mailinator
+const bcrypt = require('bcryptjs');
 const { init } = require('../src/db');
 
 const FROM = '@example.com';
@@ -15,6 +16,11 @@ const TO = '@mailinator.com';
         if (row.email === 'admin@company.com') continue;
         const next = row.email.replace(FROM, TO);
         await db.run(`UPDATE ${table} SET email = ? WHERE id = ?`, [next, row.id]);
+        // if this is a user who still has the temp password, keep temp password = new email
+        if (table === 'users') {
+          const u = await db.get('SELECT must_change_password FROM users WHERE id = ?', [row.id]);
+          if (u && u.must_change_password) await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(next, 10), row.id]);
+        }
         total++;
       }
       console.log(`${table}: updated ${before.filter(r => r.email !== 'admin@company.com').length}`);

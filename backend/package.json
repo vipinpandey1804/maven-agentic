@@ -14,7 +14,8 @@
     "test": "node --experimental-sqlite --test tests/",
     "rag:test": "node --experimental-sqlite tools/ragHarness.js",
     "users:backfill": "node --experimental-sqlite tools/backfillUsers.js",
-    "emails:mailinator": "node --experimental-sqlite tools/rewriteEmails.js"
+    "emails:mailinator": "node --experimental-sqlite tools/rewriteEmails.js",
+    "users:resync-temp": "node --experimental-sqlite tools/resyncTempPasswords.js"
   },
   "dependencies": {
     "@langchain/anthropic": "^1.4.1",

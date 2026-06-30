@@ -69,7 +69,6 @@ function Field({ label, hint, ...props }) {
 export default function Settings() {
   const [smtp, setSmtp] = useSetting('smtp');
   const [llm, setLlm] = useSetting('llm');
-  const [schedule, setSchedule] = useSetting('schedule');
   const [company, setCompany] = useSetting('company');
   const [templates, setTemplates] = useState(null);
   const [busy, setBusy] = useState('');
@@ -195,7 +194,7 @@ export default function Settings() {
     }
   }
 
-  if (!smtp || !llm || !schedule || !company || !templates) {
+  if (!smtp || !llm || !company || !templates) {
     return <div className="flex justify-center py-24"><Spinner className="h-8 w-8" /></div>;
   }
 
@@ -203,14 +202,13 @@ export default function Settings() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">SMTP, LLM provider, schedule, company branding and email templates</p>
+        <p className="text-sm text-muted-foreground">SMTP, LLM provider, company branding and email templates</p>
       </div>
 
       <Tabs defaultValue="smtp">
         <TabsList>
           <TabsTrigger value="smtp"><Mail size={14} className="mr-1.5 inline" />SMTP</TabsTrigger>
           <TabsTrigger value="llm"><Brain size={14} className="mr-1.5 inline" />LLM</TabsTrigger>
-          <TabsTrigger value="schedule"><CalendarClock size={14} className="mr-1.5 inline" />Schedule</TabsTrigger>
           <TabsTrigger value="company"><Building2 size={14} className="mr-1.5 inline" />Company</TabsTrigger>
           <TabsTrigger value="templates"><FileText size={14} className="mr-1.5 inline" />Templates</TabsTrigger>
           <TabsTrigger value="knowledge"><Database size={14} className="mr-1.5 inline" />Knowledge</TabsTrigger>
@@ -292,23 +290,6 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="schedule">
-            <Card className="max-w-2xl">
-              <CardHeader>
-                <CardTitle>Dispatch schedule</CardTitle>
-                <CardDescription>When the salary-slip agent fires. Default: 09:00 IST on the 1st of every month.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Cron expression" hint='e.g. "0 9 1 * *" = 09:00 on day 1'
-                    value={schedule.cron || ''} onChange={(e) => setSchedule({ ...schedule, cron: e.target.value })} />
-                  <Field label="Timezone" hint='e.g. "Asia/Kolkata"'
-                    value={schedule.timezone || ''} onChange={(e) => setSchedule({ ...schedule, timezone: e.target.value })} />
-                </div>
-                <SaveBar busy={busy === 'schedule'} msg={msg.schedule} onSave={() => save('schedule', schedule, setSchedule)} />
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="company">
             <Card className="max-w-2xl">

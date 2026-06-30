@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import MyDashboard from './pages/MyDashboard';
 import Employees from './pages/Employees';
+import EmployeeDetail from './pages/EmployeeDetail';
 import Batches from './pages/Batches';
 import BatchDetail from './pages/BatchDetail';
 import Agents from './pages/Agents';
@@ -52,6 +53,7 @@ const router = createBrowserRouter([
           { path: '/me', element: <MyDashboard /> },
           { path: '/profile', element: <Profile /> },
           { path: '/employees', element: <StaffOnly><Employees /></StaffOnly> },
+          { path: '/employees/:id', element: <StaffOnly><EmployeeDetail /></StaffOnly> },
           { path: '/batches', element: <StaffOnly><Batches /></StaffOnly> },
           { path: '/batches/:id', element: <StaffOnly><BatchDetail /></StaffOnly> },
           { path: '/agents', element: <StaffOnly><Agents /></StaffOnly> },

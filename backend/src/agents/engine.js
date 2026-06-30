@@ -63,7 +63,6 @@ async function start() {
   await ensureRows();
   if (!require('../config').schedulerEnabled) return; // e.g. tests
   const db = await init();
-  const schedule = await settingsService.get('schedule');
   const rows = await db.all('SELECT * FROM agents');
   for (const row of rows) {
     if (!registry.has(row.name)) continue;
@@ -71,9 +70,9 @@ async function start() {
     if (!row.enabled || !row.cron_expression) continue;
     const job = cron.schedule(row.cron_expression, () => {
       runAgent(row.name, 'cron').catch((e) => console.error(`[agent:${row.name}]`, e.message));
-    }, { timezone: schedule.timezone || 'Asia/Kolkata' });
+    }, { timezone: 'Asia/Kolkata' });
     jobs.set(row.name, job);
-    console.log(`[engine] scheduled "${row.name}" @ ${row.cron_expression} (${schedule.timezone})`);
+    console.log(`[engine] scheduled "${row.name}" @ ${row.cron_expression} (Asia/Kolkata)`);
   }
 }
 

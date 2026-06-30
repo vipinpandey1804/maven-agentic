@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, Link, Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Users, FileSpreadsheet, Settings, LogOut, IndianRupee, CalendarDays, User, UserCog, Inbox, X } from 'lucide-react';
-import { setToken, setUser, getRole, getUser } from '../lib/api';
+import { LayoutDashboard, Users, FileSpreadsheet, Settings, IndianRupee, CalendarDays, UserCog, Inbox, X } from 'lucide-react';
+import { getRole, getUser } from '../lib/api';
 import { cn } from '../lib/utils';
 import FloatingAssistant from './FloatingAssistant';
 import NotificationBell from './NotificationBell';
+import ProfileMenu from './ProfileMenu';
 
 const NAV = [
   { to: '/me', label: 'My Dashboard', icon: LayoutDashboard, roles: ['employee'] },
@@ -16,11 +17,9 @@ const NAV = [
   { to: '/requests', label: 'Requests', icon: Inbox, roles: ['admin', 'hr'] },
   { to: '/users', label: 'Users', icon: UserCog, roles: ['admin'] },
   { to: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
-  { to: '/profile', label: 'Profile', icon: User },
 ];
 
 export default function Layout() {
-  const navigate = useNavigate();
   const location = useLocation();
   const role = getRole();
   const user = getUser();
@@ -63,23 +62,14 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
-        {role && (
-          <div className="mx-3 mb-1 rounded-lg bg-muted px-3 py-1.5 text-[11px] text-muted-foreground">
-            Signed in as <span className="font-semibold uppercase text-foreground">{role}</span>
-          </div>
-        )}
-        <button
-          onClick={() => { setToken(null); setUser(null); navigate('/login'); }}
-          className="m-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"
-        >
-          <LogOut size={17} /> Sign out
-        </button>
       </aside>
 
-      <main className="ml-60 flex-1 px-8 py-7">
-        <div className="mb-4 flex items-center justify-end">
+      <main className="ml-60 flex-1 px-8 py-6">
+        <div className="mb-5 flex items-center justify-end gap-2">
           <NotificationBell />
+          <ProfileMenu />
         </div>
+
         {showPwdHint && (
           <div className="mb-5 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
             <span>You're using a temporary password. <Link to="/profile" className="font-semibold underline">Set a new password</Link> for better security.</span>

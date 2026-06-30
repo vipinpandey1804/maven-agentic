@@ -197,9 +197,11 @@ async function sendBatch(id, actorId, { trigger = 'manual' } = {}) {
   const monthName = pdfService.MONTHS[batch.month - 1];
 
   let sent = 0, failed = 0, skipped = 0;
-  for (const rec of batch.records) {
+
+  // process one employee's slip (PDF + email + logs)
+  async function processRecord(rec) {
     const last = await db.get('SELECT * FROM send_logs WHERE salary_record_id = ? ORDER BY created_at DESC LIMIT 1', [rec.id]);
-    if (last && last.status === 'SENT') { skipped++; continue; } // idempotent: never double-send
+    if (last && last.status === 'SENT') { skipped++; return; } // idempotent: never double-send
 
     const emp = { id: rec.employee_id, employee_id: rec.emp_code, full_name: rec.full_name, email: rec.email };
     const empFull = await db.get('SELECT * FROM employees WHERE id = ?', [rec.employee_id]);
@@ -220,7 +222,7 @@ async function sendBatch(id, actorId, { trigger = 'manual' } = {}) {
         to: emp.email,
         subject: mailer.renderTemplate(tpl ? tpl.subject : 'Salary Slip - {month} {year}', vars),
         html: mailer.renderTemplate(tpl ? tpl.body_html : '<p>Dear {name}, your salary slip for {month} {year} is attached.</p>', vars),
-        attachments: [{ filename: `SalarySlip-${monthName}-${batch.year}.pdf`, path: pdfPath }],
+        attachments: [{ filename: `SalarySlip-${monthName}-${batch.year}.pdf`, content: fs.readFileSync(pdfPath), contentType: 'application/pdf' }],
       });
       await db.run('UPDATE send_logs SET status = ?, attempts = attempts + 1, sent_at = ?, last_error = NULL WHERE id = ?', ['SENT', now(), logId]);
       notify.bgEmployee(rec.employee_id, { type: 'payslip', title: 'Payslip available',
@@ -233,6 +235,13 @@ async function sendBatch(id, actorId, { trigger = 'manual' } = {}) {
       failed++;
     }
   }
+
+  // run with a concurrency pool so 13 slips don't go strictly one-by-one
+  const CONCURRENCY = 5;
+  const queue = [...batch.records];
+  async function worker() { while (queue.length) { await processRecord(queue.shift()); } }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, batch.records.length) }, () => worker()));
+
   if (failed === 0) await db.run('UPDATE salary_batches SET status = ? WHERE id = ?', ['SENT', id]);
   await audit.log(actorId, 'BATCH_DISPATCHED', 'salary_batches', id, { trigger, sent, failed, skipped });
   return { sent, failed, skipped, batchStatus: failed === 0 ? 'SENT' : batch.status };
@@ -250,4 +259,23 @@ async function employeeHistory(employeeId) {
   );
 }
 
-module.exports = { uploadBatch, getBatch, listBatches, approve, reject, sendBatch, employeeHistory, flagRecord };
+// Generate a salary-slip PDF on demand for in-app download.
+// In-app downloads are NOT password-protected (the user is already authenticated). Only EMAILED slips are protected.
+// forEmployeeId, when given, restricts to that employee's own record.
+async function slipPdf(recordId, { forEmployeeId, encrypted = true } = {}) {
+  const db = await init();
+  const rec = await db.get(
+    `SELECT r.id, r.employee_id, r.basic, r.hra, r.allowances, r.deductions, r.lop_days, r.net_pay,
+            b.month, b.year, b.status AS batch_status
+     FROM salary_records r JOIN salary_batches b ON b.id = r.batch_id WHERE r.id = ?`, [recordId]
+  );
+  if (!rec) throw new HttpError(404, 'Salary record not found');
+  if (forEmployeeId && rec.employee_id !== forEmployeeId) throw new HttpError(403, 'Not your payslip');
+  if (!['APPROVED', 'SENT'].includes(rec.batch_status)) throw new HttpError(409, 'Slip is not available until the batch is approved');
+  const emp = await db.get('SELECT * FROM employees WHERE id = ?', [rec.employee_id]);
+  const company = await settings.get('company');
+  const filePath = await pdfService.generateSlip({ employee: emp, record: rec, month: rec.month, year: rec.year, company, encrypted });
+  return { path: filePath, filename: `SalarySlip-${pdfService.MONTHS[rec.month - 1]}-${rec.year}-${emp.employee_id}.pdf` };
+}
+
+module.exports = { uploadBatch, getBatch, listBatches, approve, reject, sendBatch, employeeHistory, flagRecord, slipPdf };

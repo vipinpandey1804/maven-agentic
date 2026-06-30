@@ -26,11 +26,23 @@ export const api = {
   employees: (q = '') => call(`/employees${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   importEmployees: (file) => { const fd = new FormData(); fd.append('file', file); return call('/employees/import', { method: 'POST', formData: fd }); },
   employeeHistory: (id) => call(`/employees/${id}/history`),
+  employeeOverview: (id) => call(`/employees/${id}/overview`),
   updateEmployee: (id, body) => call(`/employees/${id}`, { method: 'PUT', body }),
   sendEmployeeEmail: (id, template) => call(`/employees/${id}/send-email`, { method: 'POST', body: { template } }),
   meDashboard: () => call('/me/dashboard'),
   meProfile: () => call('/me/profile'),
   mePayslips: () => call('/me/payslips'),
+  // authenticated file (PDF) download helper
+  downloadFile: async (path, filename) => {
+    const res = await fetch(BASE + path, { headers: { Authorization: `Bearer ${getToken()}` } });
+    if (!res.ok) { let m = 'Download failed'; try { m = (await res.json()).error || m; } catch { /* ignore */ } throw new Error(m); }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename || 'salary-slip.pdf'; a.click();
+    URL.revokeObjectURL(a.href);
+  },
+  downloadMySlip: (recordId, filename) => api.downloadFile(`/me/payslips/${recordId}/slip`, filename),
+  downloadSlip: (recordId, filename) => api.downloadFile(`/salary/records/${recordId}/slip`, filename),
   myLeaves: () => call('/me/leaves'),
   applyLeave: (body) => call('/me/leaves', { method: 'POST', body }),
   leaves: (status) => call(`/leaves${status ? `?status=${status}` : ''}`),

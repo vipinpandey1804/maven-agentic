@@ -161,4 +161,36 @@ async function update(id, data, actorId) {
   return db.get('SELECT * FROM employees WHERE id = ?', [id]);
 }
 
-module.exports = { importCsv, list, update, sendTemplatedEmail };
+// Full 360 view of one employee for HR/Admin: profile + account + salary history + leaves + tickets.
+async function overview(employeeId) {
+  const db = await init();
+  const e = await db.get('SELECT * FROM employees WHERE id = ?', [employeeId]);
+  if (!e) throw new HttpError(404, 'Employee not found');
+  const account = await db.get('SELECT id, email, role, must_change_password, created_at FROM users WHERE employee_id = ?', [employeeId]);
+  const slips = await db.all(
+    `SELECT r.*, b.month, b.year, b.status AS batch_status FROM salary_records r
+     JOIN salary_batches b ON b.id = r.batch_id
+     WHERE r.employee_id = ? AND b.status IN ('APPROVED','SENT')
+     ORDER BY b.year DESC, b.month DESC`, [employeeId]
+  );
+  const leaves = await db.all('SELECT * FROM leave_requests WHERE employee_id = ? ORDER BY from_date DESC', [employeeId]);
+  const tickets = await db.all('SELECT * FROM tickets WHERE employee_id = ? ORDER BY updated_at DESC', [employeeId]);
+  const year = new Date().getFullYear();
+  return {
+    employee: e,
+    account: account || null,
+    slips: slips.map((s) => ({ ...s, month_name: MONTHS[s.month - 1] })),
+    leaves,
+    tickets,
+    summary: {
+      slipCount: slips.length,
+      ytdNet: slips.filter((s) => s.year === year).reduce((a, s) => a + Number(s.net_pay || 0), 0),
+      leaveCount: leaves.length,
+      leaveApprovedDays: leaves.filter((l) => l.status === 'APPROVED').reduce((a, l) => a + Number(l.days || 0), 0),
+      pendingLeaves: leaves.filter((l) => l.status === 'PENDING').length,
+      openTickets: tickets.filter((t) => ['OPEN', 'IN_PROGRESS'].includes(t.status)).length,
+    },
+  };
+}
+
+module.exports = { importCsv, list, update, sendTemplatedEmail, overview };
