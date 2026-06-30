@@ -142,7 +142,7 @@ export default function Employees() {
             ) : (
               <Table>
                 <THead>
-                  <TR><TH>ID</TH><TH>Name</TH><TH>Email</TH><TH>Designation</TH><TH>Department</TH><TH>Status</TH><TH /></TR>
+                  <TR><TH>ID</TH><TH>Name</TH><TH>Email</TH><TH>DOB</TH><TH>Designation</TH><TH>Department</TH><TH>Status</TH><TH /></TR>
                 </THead>
                 <TBody>
                   <AnimatePresence>
@@ -152,6 +152,7 @@ export default function Employees() {
                         <TD className="font-mono text-xs">{e.employee_id}</TD>
                         <TD className="font-medium">{e.full_name}</TD>
                         <TD className="text-muted-foreground">{e.email}</TD>
+                        <TD className="whitespace-nowrap">{(e.dob || '').slice(0, 10) || '—'}</TD>
                         <TD>{e.designation || '—'}</TD>
                         <TD>{e.department || '—'}</TD>
                         <TD><Badge className={STATUS_COLORS[e.status]}>{e.status}</Badge></TD>

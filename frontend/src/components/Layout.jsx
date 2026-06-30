@@ -1,21 +1,30 @@
+import { useState } from 'react';
 import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Users, FileSpreadsheet, Bot, Settings, LogOut, IndianRupee } from 'lucide-react';
-import { setToken } from '../lib/api';
+import { LayoutDashboard, Users, FileSpreadsheet, Settings, LogOut, IndianRupee, CalendarDays, User, UserCog, Inbox, X } from 'lucide-react';
+import { setToken, setUser, getRole, getUser } from '../lib/api';
 import { cn } from '../lib/utils';
 import FloatingAssistant from './FloatingAssistant';
 
 const NAV = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/employees', label: 'Employees', icon: Users },
-  { to: '/batches', label: 'Salary Batches', icon: FileSpreadsheet },
-  { to: '/agents', label: 'Agents', icon: Bot },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/me', label: 'My Dashboard', icon: LayoutDashboard, roles: ['employee'] },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'hr', 'ca'] },
+  { to: '/employees', label: 'Employees', icon: Users, roles: ['admin', 'hr', 'ca'] },
+  { to: '/batches', label: 'Salary Batches', icon: FileSpreadsheet, roles: ['admin', 'hr', 'ca'] },
+  { to: '/leaves', label: 'Leaves', icon: CalendarDays, roles: ['admin', 'hr'] },
+  { to: '/requests', label: 'Requests', icon: Inbox, roles: ['admin', 'hr'] },
+  { to: '/users', label: 'Users', icon: UserCog, roles: ['admin'] },
+  { to: '/settings', label: 'Settings', icon: Settings, roles: ['admin'] },
+  { to: '/profile', label: 'Profile', icon: User },
 ];
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const role = getRole();
+  const user = getUser();
+  const [showPwdHint, setShowPwdHint] = useState(!!user?.mustChangePassword);
+  const nav = NAV.filter((n) => !n.roles || n.roles.includes(role));
 
   return (
     <div className="flex min-h-screen">
@@ -35,7 +44,7 @@ export default function Layout() {
           </div>
         </Link>
         <nav className="flex-1 space-y-1 px-3 py-2">
-          {NAV.map(({ to, label, icon: Icon }) => (
+          {nav.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} end={to === '/'}>
               {({ isActive }) => (
                 <div className={cn(
@@ -53,8 +62,13 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+        {role && (
+          <div className="mx-3 mb-1 rounded-lg bg-muted px-3 py-1.5 text-[11px] text-muted-foreground">
+            Signed in as <span className="font-semibold uppercase text-foreground">{role}</span>
+          </div>
+        )}
         <button
-          onClick={() => { setToken(null); navigate('/login'); }}
+          onClick={() => { setToken(null); setUser(null); navigate('/login'); }}
           className="m-3 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"
         >
           <LogOut size={17} /> Sign out
@@ -62,6 +76,12 @@ export default function Layout() {
       </aside>
 
       <main className="ml-60 flex-1 px-8 py-7">
+        {showPwdHint && (
+          <div className="mb-5 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+            <span>You're using a temporary password. <Link to="/profile" className="font-semibold underline">Set a new password</Link> for better security.</span>
+            <button onClick={() => setShowPwdHint(false)} className="rounded p-1 hover:bg-amber-100"><X size={15} /></button>
+          </div>
+        )}
         <motion.div
           key={location.pathname}
           initial={{ opacity: 0, y: 10 }}

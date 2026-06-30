@@ -1,6 +1,7 @@
+import ChatMarkdown from './ChatMarkdown';
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Send, Bot, User, X, AlertCircle, MessageSquarePlus, History, Trash2, ArrowLeft } from 'lucide-react';
+import { Sparkles, Send, Bot, User, X, AlertCircle, MessageSquarePlus, History, Trash2, ArrowLeft, Bug } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Button, Input, Spinner } from './ui';
@@ -20,7 +21,19 @@ export default function FloatingAssistant() {
   const [showThreads, setShowThreads] = useState(false);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [debug, setDebug] = useState(false); // testing: show sources + clarity per answer
   const endRef = useRef();
+
+  // clarity heuristic (dev harness in the UI)
+  function clarityOf(m) {
+    const top = m.sources?.[0]?.score ?? 0;
+    const refused = /(do not have|don't have|off track|going off|knowledge base|requires postgre|add an openai)/i.test(m.text || '');
+    const grounded = (m.sources?.length || 0) > 0;
+    if (refused) return { level: 'REFUSED', cls: 'bg-amber-100 text-amber-700 border-amber-200', top, grounded };
+    if (top >= 0.5 && grounded) return { level: 'HIGH', cls: 'bg-emerald-100 text-emerald-700 border-emerald-200', top, grounded };
+    if (top >= 0.3 && grounded) return { level: 'MEDIUM', cls: 'bg-yellow-100 text-yellow-700 border-yellow-200', top, grounded };
+    return { level: 'LOW', cls: 'bg-rose-100 text-rose-700 border-rose-200', top, grounded };
+  }
 
   useEffect(() => {
     if (open && !status) api.ragStatus().then(setStatus).catch(() => setStatus(null));
@@ -59,7 +72,7 @@ export default function FloatingAssistant() {
     try {
       const res = await api.chatAsk(question, conversationId);
       setConversationId(res.conversationId);
-      setMessages((m) => [...m, { role: 'assistant', text: res.answer, sources: res.sources }]);
+      setMessages((m) => [...m, { role: 'assistant', text: res.answer, sources: res.sources, usedLlm: res.usedLlm }]);
       loadThreads();
     } catch (e) {
       setMessages((m) => [...m, { role: 'assistant', text: e.message, error: true }]);
@@ -111,6 +124,9 @@ export default function FloatingAssistant() {
                 <div className="text-sm font-semibold">Ask Maven</div>
                 <div className="text-[11px] opacity-80">Your Maven assistant</div>
               </div>
+              <button onClick={() => setDebug((d) => !d)}
+                className={`rounded p-1 hover:bg-white/20 ${debug ? 'bg-white/25' : ''}`}
+                title="Debug: show sources & clarity (testing)"><Bug size={16} /></button>
               <button onClick={newChat} className="rounded p-1 hover:bg-white/20" title="New chat"><MessageSquarePlus size={16} /></button>
             </div>
 
@@ -160,11 +176,36 @@ export default function FloatingAssistant() {
                       {m.role === 'user' ? <User size={14} /> : <Bot size={14} />}
                     </div>
                     <div className="max-w-[78%]">
-                      <div className={`whitespace-pre-wrap rounded-xl px-3 py-2 text-xs ${
-                        m.role === 'user' ? 'bg-primary text-primary-foreground'
-                          : m.error ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'bg-muted'}`}>
-                        {m.text}
+                      <div className={`rounded-xl px-3 py-2 text-xs ${
+                        m.role === 'user' ? 'whitespace-pre-wrap bg-primary text-primary-foreground'
+                          : m.error ? 'whitespace-pre-wrap border border-rose-200 bg-rose-50 text-rose-700' : 'bg-muted'}`}>
+                        {m.role === 'assistant' && !m.error ? <ChatMarkdown>{m.text}</ChatMarkdown> : m.text}
                       </div>
+                      {debug && m.role === 'assistant' && !m.error && (() => {
+                        const c = clarityOf(m);
+                        return (
+                          <div className="mt-1.5 rounded-lg border border-dashed border-orange-300 bg-orange-50/50 p-2 text-[10px]">
+                            <div className="mb-1 flex items-center gap-1.5 font-semibold text-orange-700">
+                              <Bug size={11} /> DEBUG
+                              <span className={`rounded-full border px-1.5 py-px ${c.cls}`}>{c.level}</span>
+                              <span className="text-muted-foreground">top {c.top.toFixed(3)} · llm {String(!!m.usedLlm)} · sources {m.sources?.length || 0}</span>
+                            </div>
+                            {(m.sources?.length || 0) === 0 ? (
+                              <div className="text-muted-foreground">no sources (greeting / off-topic / aggregate)</div>
+                            ) : (
+                              <div className="space-y-0.5">
+                                {m.sources.slice(0, 6).map((s, j) => (
+                                  <div key={j} className="flex items-center gap-1.5">
+                                    <span className="w-8 shrink-0 text-right font-mono text-muted-foreground">{Number(s.score).toFixed(2)}</span>
+                                    <span className="shrink-0 rounded bg-orange-100 px-1 text-orange-700">{s.type || '?'}</span>
+                                    <span className="truncate">{s.title}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </motion.div>
                 ))}

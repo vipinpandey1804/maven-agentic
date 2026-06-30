@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { IndianRupee, Lock } from 'lucide-react';
-import { api, setToken } from '../lib/api';
+import { api, setToken, setUser } from '../lib/api';
 import { Button, Card, CardContent, Input, Label } from '../components/ui';
 
 export default function Login() {
@@ -16,9 +16,10 @@ export default function Login() {
     e.preventDefault();
     setLoading(true); setError('');
     try {
-      const { token } = await api.login(email, password);
+      const { token, user } = await api.login(email, password);
       setToken(token);
-      navigate('/');
+      setUser(user);
+      navigate(user.role === 'employee' ? '/me' : '/');
     } catch (err) {
       setError(err.message);
     } finally {

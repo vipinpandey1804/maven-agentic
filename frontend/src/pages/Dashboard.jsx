@@ -1,16 +1,35 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Send, AlertTriangle, IndianRupee, Activity } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { Users, Send, AlertTriangle, IndianRupee, Activity, BarChart3, LineChart as LineIcon, PieChart as PieIcon, AreaChart as AreaIcon, Building2 } from 'lucide-react';
 import { api } from '../lib/api';
 import { inr, MONTHS, STATUS_COLORS } from '../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Spinner, Empty } from '../components/ui';
+import InsightChart, { PALETTE } from '../components/InsightChart';
 
 const container = { animate: { transition: { staggerChildren: 0.07 } } };
 const item = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 24 } },
 };
+const TYPE_ICON = { area: AreaIcon, line: LineIcon, bar: BarChart3, pie: PieIcon, donut: PieIcon };
+const TYPE_LABEL = { area: 'Area', line: 'Line', bar: 'Bar', pie: 'Pie', donut: 'Donut' };
+
+function TypeToggle({ types, value, onChange }) {
+  return (
+    <div className="flex gap-1 rounded-lg bg-muted p-1">
+      {types.map((t) => {
+        const Icon = TYPE_ICON[t];
+        const active = t === value;
+        return (
+          <button key={t} onClick={() => onChange(t)} title={TYPE_LABEL[t]}
+            className={`flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${active ? 'bg-primary text-primary-foreground shadow' : 'text-muted-foreground hover:text-foreground'}`}>
+            <Icon size={14} /> <span className="hidden sm:inline">{TYPE_LABEL[t]}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -33,18 +52,32 @@ function StatCard({ icon: Icon, label, value, sub, color }) {
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const [employees, setEmployees] = useState(null);
   const [error, setError] = useState('');
+  const [payoutType, setPayoutType] = useState('area');
+  const [deptType, setDeptType] = useState('donut');
 
-  useEffect(() => { api.dashboard().then(setData).catch((e) => setError(e.message)); }, []);
+  useEffect(() => {
+    api.dashboard().then(setData).catch((e) => setError(e.message));
+    api.employees().then(setEmployees).catch(() => setEmployees([]));
+  }, []);
 
   if (error) return <Empty>{error}</Empty>;
   if (!data) return <div className="flex justify-center py-24"><Spinner className="h-8 w-8" /></div>;
 
-  const chartData = data.payoutSeries.map((b) => ({
+  const payoutData = data.payoutSeries.map((b) => ({
     name: `${MONTHS[b.month - 1]?.slice(0, 3)} ${String(b.year).slice(2)}`,
     payout: Number(b.total_net_pay || 0),
   }));
   const lastBatch = data.recentBatches[0];
+
+  // headcount by department (client-side from employee list)
+  const deptCounts = (employees || []).reduce((a, e) => {
+    const d = e.department || 'Unassigned';
+    a[d] = (a[d] || 0) + 1; return a;
+  }, {});
+  const deptData = Object.entries(deptCounts).map(([name, value]) => ({ name, value }));
+  const moneyFmt = (v) => `₹${v >= 100000 ? (v / 100000).toFixed(1) + 'L' : inr(v)}`;
 
   return (
     <div className="space-y-6">
@@ -65,29 +98,18 @@ export default function Dashboard() {
         <motion.div className="lg:col-span-2" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card>
             <CardHeader>
-              <CardTitle>Monthly payout</CardTitle>
-              <CardDescription>Total net pay per salary batch</CardDescription>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>Monthly payout</CardTitle>
+                  <CardDescription>Total net pay per salary batch</CardDescription>
+                </div>
+                <TypeToggle types={['area', 'line', 'bar']} value={payoutType} onChange={setPayoutType} />
+              </div>
             </CardHeader>
-            <CardContent className="h-64">
-              {chartData.length === 0 ? <Empty>Upload a salary batch to see the trend</Empty> : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="payout" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                    <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={12} />
-                    <YAxis tickFormatter={(v) => `₹${v >= 100000 ? (v / 100000).toFixed(1) + 'L' : inr(v)}`}
-                      tickLine={false} axisLine={false} fontSize={12} width={64} />
-                    <Tooltip formatter={(v) => [`₹${inr(v)}`, 'Payout']} />
-                    <Area type="monotone" dataKey="payout" stroke="#6366f1" strokeWidth={2.5} fill="url(#payout)"
-                      animationDuration={900} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
+            <CardContent>
+              <InsightChart type={payoutType} data={payoutData} xKey="name"
+                series={[{ key: 'payout', label: 'Payout', color: PALETTE[0] }]}
+                valueFormatter={moneyFmt} height={264} />
             </CardContent>
           </Card>
         </motion.div>
@@ -116,26 +138,46 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-        <Card>
-          <CardHeader><CardTitle>Recent batches</CardTitle></CardHeader>
-          <CardContent>
-            {data.recentBatches.length === 0 ? <Empty>No salary batches yet — upload one from Salary Batches</Empty> : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {data.recentBatches.map((b) => (
-                  <div key={b.id} className="flex items-center justify-between rounded-lg border p-3.5">
-                    <div>
-                      <div className="font-medium">{MONTHS[b.month - 1]} {b.year}</div>
-                      <div className="text-xs text-muted-foreground">{b.employee_count} employees · ₹{inr(b.total_net_pay)}</div>
-                    </div>
-                    <Badge className={STATUS_COLORS[b.status]}>{b.status.replaceAll('_', ' ')}</Badge>
-                  </div>
-                ))}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32 }}>
+          <Card className="h-full">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><Building2 size={16} /> Headcount by department</CardTitle>
+                <TypeToggle types={['donut', 'pie', 'bar']} value={deptType} onChange={setDeptType} />
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+            </CardHeader>
+            <CardContent>
+              {!employees ? <div className="flex justify-center py-8"><Spinner /></div> : (
+                <InsightChart type={deptType === 'donut' ? 'pie' : deptType} donut={deptType === 'donut'}
+                  data={deptData} xKey="name" series={[{ key: 'value', label: 'Employees', color: PALETTE[1] }]}
+                  valueFormatter={(v) => `${v}`} height={300} />
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div className="lg:col-span-2" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+          <Card>
+            <CardHeader><CardTitle>Recent batches</CardTitle></CardHeader>
+            <CardContent>
+              {data.recentBatches.length === 0 ? <Empty>No salary batches yet — upload one from Salary Batches</Empty> : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {data.recentBatches.map((b) => (
+                    <div key={b.id} className="flex items-center justify-between rounded-lg border p-3.5">
+                      <div>
+                        <div className="font-medium">{MONTHS[b.month - 1]} {b.year}</div>
+                        <div className="text-xs text-muted-foreground">{b.employee_count} employees · ₹{inr(b.total_net_pay)}</div>
+                      </div>
+                      <Badge className={STATUS_COLORS[b.status]}>{b.status.replaceAll('_', ' ')}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
 }

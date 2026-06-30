@@ -7,8 +7,11 @@ module.exports = [
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'admin',
     employee_id TEXT,
+    must_change_password INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
   )`,
+  // back-fill column for databases created before this existed (dup-column errors are ignored by migrate())
+  `ALTER TABLE users ADD COLUMN must_change_password INTEGER NOT NULL DEFAULT 0`,
   `CREATE TABLE IF NOT EXISTS employees (
     id TEXT PRIMARY KEY,
     employee_id TEXT UNIQUE NOT NULL,

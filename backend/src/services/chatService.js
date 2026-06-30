@@ -49,8 +49,9 @@ async function addMessage(db, conversationId, role, content, sources) {
   );
 }
 
-/** Ask within a thread: persists the turn, uses stored history for context. */
-async function ask(userId, conversationId, question) {
+/** Ask within a thread: persists the turn, uses stored history for context.
+ * `actor` = { role, employeeId } scopes the assistant for employee-role users. */
+async function ask(userId, conversationId, question, actor = null) {
   const db = await init();
   let conv = conversationId
     ? await db.get('SELECT * FROM chat_conversations WHERE id = ? AND user_id = ?', [conversationId, userId])
@@ -66,7 +67,8 @@ async function ask(userId, conversationId, question) {
   const prior = await db.all('SELECT role, content FROM chat_messages WHERE conversation_id = ? ORDER BY created_at ASC', [conv.id]);
   const history = prior.map((m) => ({ role: m.role, text: m.content }));
 
-  const result = await rag.answer(question, { history });
+  const scope = actor && actor.role === 'employee' && actor.employeeId ? { role: 'employee', employeeId: actor.employeeId } : null;
+  const result = await rag.answer(question, { history, scope });
 
   await addMessage(db, conv.id, 'user', question, null);
   await addMessage(db, conv.id, 'assistant', result.answer, result.sources);

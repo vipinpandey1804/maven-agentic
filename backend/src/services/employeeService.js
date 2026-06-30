@@ -2,6 +2,7 @@ const { parse } = require('csv-parse/sync');
 const { init } = require('../db');
 const { uuid, now, HttpError } = require('../utils/helpers');
 const audit = require('./auditService');
+const userService = require('./userService');
 const ai = require('./aiService');
 const mailer = require('./mailerService');
 const settings = require('./settingsService');
@@ -78,7 +79,7 @@ async function importCsv(buffer, actorId, { partial = false } = {}) {
   if (allErrors.length && !partial) throw new HttpError(422, 'Validation failed - nothing imported', allErrors);
 
   const db = await init();
-  let inserted = 0, updated = 0, skipped = 0;
+  let inserted = 0, updated = 0, skipped = 0, accountsCreated = 0;
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     if (validateRow(r, i).length) { skipped++; continue; }
@@ -86,22 +87,33 @@ async function importCsv(buffer, actorId, { partial = false } = {}) {
     const existing = await db.get('SELECT id FROM employees WHERE employee_id = ?', [String(r.employee_id).trim()]);
     const status = ['active', 'inactive'].includes(String(r.status || '').toLowerCase()) ? String(r.status).toLowerCase() : 'active';
     if (existing) {
+      const cleanEmailU = String(r.email).trim().toLowerCase();
       await db.run(
         `UPDATE employees SET full_name=?, email=?, dob=?, designation=?, department=?, date_of_joining=?, status=?, updated_at=? WHERE id=?`,
-        [r.full_name, String(r.email).trim().toLowerCase(), dob, r.designation || null, r.department || null, r.date_of_joining || null, status, now(), existing.id]
+        [r.full_name, cleanEmailU, dob, r.designation || null, r.department || null, r.date_of_joining || null, status, now(), existing.id]
       );
       updated++;
+      // make sure already-imported employees also get a login (no-op if one exists)
+      try {
+        if (await userService.createForEmployee({ id: existing.id, email: cleanEmailU }, actorId)) accountsCreated++;
+      } catch (e) { /* never break import */ }
     } else {
+      const newId = uuid();
+      const cleanEmail = String(r.email).trim().toLowerCase();
       await db.run(
         `INSERT INTO employees (id, employee_id, full_name, email, dob, designation, department, date_of_joining, status, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [uuid(), String(r.employee_id).trim(), r.full_name, String(r.email).trim().toLowerCase(), dob, r.designation || null, r.department || null, r.date_of_joining || null, status, now(), now()]
+        [newId, String(r.employee_id).trim(), r.full_name, cleanEmail, dob, r.designation || null, r.department || null, r.date_of_joining || null, status, now(), now()]
       );
       inserted++;
+      // auto-provision an employee login (password = email, must change on first login)
+      try {
+        if (await userService.createForEmployee({ id: newId, email: cleanEmail }, actorId)) accountsCreated++;
+      } catch (e) { /* never let account creation break the import */ }
     }
   }
   await audit.log(actorId, 'EMPLOYEES_IMPORTED', 'employees', null, { inserted, updated, skipped, errors: allErrors.length, autoMapped });
-  return { inserted, updated, skipped, errors: allErrors, autoMapped };
+  return { inserted, updated, skipped, accountsCreated, errors: allErrors, autoMapped };
 }
 
 async function list({ q, status } = {}) {

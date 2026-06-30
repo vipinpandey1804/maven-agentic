@@ -2,6 +2,9 @@ const BASE = (import.meta.env.VITE_API_URL || '') + '/api';
 
 export function getToken() { return sessionStorage.getItem('token'); }
 export function setToken(t) { t ? sessionStorage.setItem('token', t) : sessionStorage.removeItem('token'); }
+export function setUser(u) { u ? sessionStorage.setItem('user', JSON.stringify(u)) : sessionStorage.removeItem('user'); }
+export function getUser() { try { return JSON.parse(sessionStorage.getItem('user') || 'null'); } catch { return null; } }
+export function getRole() { return getUser()?.role || null; }
 
 async function call(path, { method = 'GET', body, formData } = {}) {
   const headers = {};
@@ -18,12 +21,34 @@ async function call(path, { method = 'GET', body, formData } = {}) {
 export const api = {
   login: (email, password) => call('/auth/login', { method: 'POST', body: { email, password } }),
   me: () => call('/auth/me'),
+  changePassword: (currentPassword, newPassword) => call('/auth/change-password', { method: 'POST', body: { currentPassword, newPassword } }),
   dashboard: () => call('/dashboard'),
   employees: (q = '') => call(`/employees${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   importEmployees: (file) => { const fd = new FormData(); fd.append('file', file); return call('/employees/import', { method: 'POST', formData: fd }); },
   employeeHistory: (id) => call(`/employees/${id}/history`),
   updateEmployee: (id, body) => call(`/employees/${id}`, { method: 'PUT', body }),
   sendEmployeeEmail: (id, template) => call(`/employees/${id}/send-email`, { method: 'POST', body: { template } }),
+  meDashboard: () => call('/me/dashboard'),
+  meProfile: () => call('/me/profile'),
+  mePayslips: () => call('/me/payslips'),
+  myLeaves: () => call('/me/leaves'),
+  applyLeave: (body) => call('/me/leaves', { method: 'POST', body }),
+  leaves: (status) => call(`/leaves${status ? `?status=${status}` : ''}`),
+  reviewLeave: (id, status, note) => call(`/leaves/${id}/review`, { method: 'POST', body: { status, note } }),
+  // change-request tickets
+  myTickets: () => call('/me/tickets'),
+  createTicket: (body) => call('/me/tickets', { method: 'POST', body }),
+  myTicket: (id) => call(`/me/tickets/${id}`),
+  commentMyTicket: (id, message) => call(`/me/tickets/${id}/comments`, { method: 'POST', body: { message } }),
+  tickets: (status) => call(`/tickets${status ? `?status=${status}` : ''}`),
+  ticket: (id) => call(`/tickets/${id}`),
+  commentTicket: (id, message) => call(`/tickets/${id}/comments`, { method: 'POST', body: { message } }),
+  setTicketStatus: (id, status, note) => call(`/tickets/${id}/status`, { method: 'POST', body: { status, note } }),
+  users: () => call('/users'),
+  createUser: (body) => call('/users', { method: 'POST', body }),
+  updateUser: (id, body) => call(`/users/${id}`, { method: 'PUT', body }),
+  deleteUser: (id) => call(`/users/${id}`, { method: 'DELETE' }),
+  backfillEmployeeAccounts: () => call('/users/backfill-employees', { method: 'POST' }),
   batches: () => call('/salary/batches'),
   batch: (id) => call(`/salary/batches/${id}`),
   uploadSalary: (file, month, year) => { const fd = new FormData(); fd.append('file', file); fd.append('month', month); fd.append('year', year); return call('/salary/upload', { method: 'POST', formData: fd }); },

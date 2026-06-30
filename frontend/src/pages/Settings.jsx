@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertCircle, Mail, Brain, CalendarClock, Building2, FileText, Sparkles, Database, RefreshCw, Upload, Trash2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Mail, Brain, CalendarClock, Building2, FileText, Sparkles, Database, RefreshCw, Upload, Trash2, Bot } from 'lucide-react';
 import { api } from '../lib/api';
+import AgentsPanel from './Agents';
 import {
   Button, Card, CardContent, CardHeader, CardTitle, CardDescription,
   Input, Label, Tabs, TabsList, TabsTrigger, TabsContent, Spinner, Empty,
@@ -213,6 +214,7 @@ export default function Settings() {
           <TabsTrigger value="company"><Building2 size={14} className="mr-1.5 inline" />Company</TabsTrigger>
           <TabsTrigger value="templates"><FileText size={14} className="mr-1.5 inline" />Templates</TabsTrigger>
           <TabsTrigger value="knowledge"><Database size={14} className="mr-1.5 inline" />Knowledge</TabsTrigger>
+          <TabsTrigger value="agents"><Bot size={14} className="mr-1.5 inline" />Agents</TabsTrigger>
         </TabsList>
 
         <div className="mt-5">
@@ -474,6 +476,11 @@ export default function Settings() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="agents">
+            <AgentsPanel />
+          </TabsContent>
+
         </div>
       </Tabs>
     </div>
